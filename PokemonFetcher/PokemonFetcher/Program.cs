@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace PokemonFetcher;
@@ -10,8 +11,7 @@ namespace PokemonFetcher;
 class Program {
     static void Main(string[] args) {
         if (!ArgsValid(args, out string mainPagePath, out string subPageDirectory, out string stylesheetPath,
-                out string subPageStylesheet))
-        {
+                out string subPageStylesheet)) {
             Console.Write("Enter path to mainPage (including filename): ");
             mainPagePath = Console.ReadLine() ?? "index.html";
             Console.Write("Enter path to subPageDirectory: ");
@@ -78,6 +78,10 @@ class Program {
             .Select(location => location["location_area"]["name"].ToString());
         string locationString = locations.Any() ? string.Join("", locations.Select(l => $"<li>{l}</li>")) : "None";
 
+        var types = pokemon["types"].AsArray().Select(type => type["type"]["name"].ToString());
+        var effectiveness = CalculateTypeEffectiveness(types);
+        var weaknessResistanceTable = BuildWeaknessResistanceTable(effectiveness);
+
         #endregion
 
         #region Build main page content
@@ -125,7 +129,6 @@ class Program {
 
         #region Build sub page content
 
-        // TODO: calculate weaknesses/resistances based on types
         string doc = $"""
                       <!DOCTYPE html>
                       <html lang="en">
@@ -155,14 +158,7 @@ class Program {
                                   </tr>
                                   </thead>
                                   <tbody>
-                                  <tr>
-                                      <td></td>
-                                      <td></td>
-                                      <td></td>
-                                      <td></td>
-                                      <td></td>
-                                      <td></td>
-                                  </tr>
+                                  {weaknessResistanceTable}
                                   </tbody>
                               </table>
                               <br>
@@ -243,6 +239,64 @@ class Program {
         subPageStylesheet = args[3];
         return true;
     }
+
+    #region Types
+
+    // Define type effectiveness
+    private static readonly Dictionary<string, Dictionary<string, double>> TypeEffectiveness = new() {
+        { "normal", new Dictionary<string, double> { { "rock", 0.5 }, { "ghost", 0 }, { "steel", 0.5 } } },
+        { "fire", new Dictionary<string, double> { { "fire", 0.5 }, { "water", 0.5 }, { "grass", 2 }, { "ice", 2 }, { "bug", 2 }, { "rock", 0.5 }, { "dragon", 0.5 }, { "steel", 2 } } },
+        { "water", new Dictionary<string, double> { { "fire", 2 }, { "water", 0.5 }, { "grass", 0.5 }, { "ground", 2 }, { "rock", 2 }, { "dragon", 0.5 } } },
+        { "electric", new Dictionary<string, double> { { "water", 2 }, { "electric", 0.5 }, { "grass", 0.5 }, { "ground", 0 }, { "flying", 2 }, { "dragon", 0.5 } } },
+        { "grass", new Dictionary<string, double> { { "fire", 0.5 }, { "water", 2 }, { "grass", 0.5 }, { "poison", 0.5 }, { "ground", 2 }, { "flying", 0.5 }, { "bug", 0.5 }, { "rock", 2 }, { "dragon", 0.5 }, { "steel", 0.5 } } },
+        { "ice", new Dictionary<string, double> { { "fire", 0.5 }, { "water", 0.5 }, { "grass", 2 }, { "ice", 0.5 }, { "ground", 2 }, { "flying", 2 }, { "dragon", 2 }, { "steel", 0.5 } } },
+        { "fighting", new Dictionary<string, double> { { "normal", 2 }, { "ice", 2 }, { "poison", 0.5 }, { "flying", 0.5 }, { "psychic", 0.5 }, { "bug", 0.5 }, { "rock", 2 }, { "ghost", 0 }, { "dark", 2 }, { "steel", 2 }, { "fairy", 0.5 } } },
+        { "poison", new Dictionary<string, double> { { "grass", 2 }, { "poison", 0.5 }, { "ground", 0.5 }, { "rock", 0.5 }, { "ghost", 0.5 }, { "steel", 0 }, { "fairy", 2 } } },
+        { "ground", new Dictionary<string, double> { { "fire", 2 }, { "electric", 2 }, { "grass", 0.5 }, { "poison", 2 }, { "flying", 0 }, { "bug", 0.5 }, { "rock", 2 }, { "steel", 2 } } },
+        { "flying", new Dictionary<string, double> { { "electric", 0.5 }, { "grass", 2 }, { "fighting", 2 }, { "bug", 2 }, { "rock", 0.5 }, { "steel", 0.5 } } },
+        { "psychic", new Dictionary<string, double> { { "fighting", 2 }, { "poison", 2 }, { "psychic", 0.5 }, { "dark", 0 }, { "steel", 0.5 } } },
+        { "bug", new Dictionary<string, double> { { "fire", 0.5 }, { "grass", 2 }, { "fighting", 0.5 }, { "poison", 0.5 }, { "flying", 0.5 }, { "psychic", 2 }, { "ghost", 0.5 }, { "dark", 2 }, { "steel", 0.5 }, { "fairy", 0.5 } } },
+        { "rock", new Dictionary<string, double> { { "fire", 2 }, { "ice", 2 }, { "fighting", 0.5 }, { "ground", 0.5 }, { "flying", 2 }, { "bug", 2 }, { "steel", 0.5 } } },
+        { "ghost", new Dictionary<string, double> { { "normal", 0 }, { "psychic", 2 }, { "ghost", 2 }, { "dark", 0.5 } } },
+        { "dragon", new Dictionary<string, double> { { "dragon", 2 }, { "steel", 0.5 }, { "fairy", 0 } } },
+        { "dark", new Dictionary<string, double> { { "fighting", 0.5 }, { "psychic", 2 }, { "ghost", 2 }, { "dark", 0.5 }, { "fairy", 0.5 } } },
+        { "steel", new Dictionary<string, double> { { "fire", 0.5 }, { "water", 0.5 }, { "electric", 0.5 }, { "ice", 2 }, { "rock", 2 }, { "steel", 0.5 }, { "fairy", 2 } } },
+        { "fairy", new Dictionary<string, double> { { "fire", 0.5 }, { "fighting", 2 }, { "poison", 0.5 }, { "dragon", 2 }, { "dark", 2 }, { "steel", 0.5 } } }
+    };
+
+// Calculate resistances/weaknesses
+    private static Dictionary<string, double> CalculateTypeEffectiveness(IEnumerable<string> types) {
+        var effectiveness = new Dictionary<string, double>();
+
+        foreach (var type in types) {
+            foreach (var (targetType, multiplier) in TypeEffectiveness[type]) {
+                if (!effectiveness.TryAdd(targetType, multiplier)) {
+                    effectiveness[targetType] *= multiplier;
+                }
+            }
+        }
+
+        return effectiveness;
+    }
+
+// Fill the table in the subpage
+    private static string BuildWeaknessResistanceTable(Dictionary<string, double> effectiveness) {
+        var table = new StringBuilder();
+        table.Append("<tr>");
+
+        var categories = new[] { 0.0, 0.25, 0.5, 1.0, 2.0, 4.0 };
+        foreach (var category in categories) {
+            table.Append("<td>");
+            var types = effectiveness.Where(e => e.Value == category).Select(e => e.Key);
+            table.Append(string.Join(", ", types));
+            table.Append("</td>");
+        }
+
+        table.Append("</tr>");
+        return table.ToString();
+    }
+
+    #endregion
 }
 
 public class HtmlBuilder() {
