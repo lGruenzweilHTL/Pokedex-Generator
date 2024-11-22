@@ -9,12 +9,22 @@ namespace PokemonFetcher;
 
 class Program {
     static void Main(string[] args) {
-        if (!ArgsValid(args, out string mainPagePath, out string subPageDirectory, out string stylesheetPath, out string subPageStylesheet)) {
-            return;
+        if (!ArgsValid(args, out string mainPagePath, out string subPageDirectory, out string stylesheetPath,
+                out string subPageStylesheet))
+        {
+            Console.Write("Enter path to mainPage (including filename): ");
+            mainPagePath = Console.ReadLine() ?? "index.html";
+            Console.Write("Enter path to subPageDirectory: ");
+            subPageDirectory = Console.ReadLine() ?? "subpages";
+            Console.Write("Enter path to stylesheet: ");
+            stylesheetPath = Console.ReadLine() ?? "style.css";
+            Console.Write("Enter path to subPageStylesheet: ");
+            subPageStylesheet = Console.ReadLine() ?? "substyle.css";
         }
 
+
         // Build main page
-        var jsonObject = FetchPokemon(0, 10 /* Value is TEMP */);
+        var jsonObject = FetchPokemon(0, 151);
         var pokemonArray = jsonObject["results"].AsArray();
         var htmlGenerator = new HtmlBuilder();
         htmlGenerator.OpenDocument("Pokedex", stylesheetPath);
