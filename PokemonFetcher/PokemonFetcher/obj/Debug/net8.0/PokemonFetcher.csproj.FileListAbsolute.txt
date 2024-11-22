@@ -1,0 +1,15 @@
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/bin/Debug/net8.0/PokemonFetcher
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/bin/Debug/net8.0/PokemonFetcher.deps.json
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/bin/Debug/net8.0/PokemonFetcher.runtimeconfig.json
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/bin/Debug/net8.0/PokemonFetcher.dll
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/bin/Debug/net8.0/PokemonFetcher.pdb
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.GeneratedMSBuildEditorConfig.editorconfig
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.AssemblyInfoInputs.cache
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.AssemblyInfo.cs
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.csproj.CoreCompileInputs.cache
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.sourcelink.json
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.dll
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/refint/PokemonFetcher.dll
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.pdb
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/PokemonFetcher.genruntimeconfig.cache
+/home/lukas/Github/WMC-Pokedex/PokemonFetcher/PokemonFetcher/obj/Debug/net8.0/ref/PokemonFetcher.dll
