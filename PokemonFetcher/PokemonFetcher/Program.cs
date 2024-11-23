@@ -64,6 +64,12 @@ public class Program {
                 var t = type["type"]["name"];
                 return $"<a href=\"types.html#{t}\">{t}</a>";
             }));
+        string typesSubpage = string.Join('/', pokemon["types"]
+            .AsArray()
+            .Select(type => {
+                var t = type["type"]["name"];
+                return $"<a href=\"../types.html#{t}\">{t}</a>";
+            }));
         var stats = pokemon["stats"];
         string hp = stats[0]["base_stat"].ToString();
         string attack = stats[1]["base_stat"].ToString();
@@ -127,10 +133,11 @@ public class Program {
                       <h1>{name}</h1>
                           {floatingImage}
                           <p>TODO: write text manually</p>
+                          <p class="clearfix">Type: {typesSubpage}</p>
                           <table class="resistance-table clearfix">
                               <thead>
                                   <tr>
-                                      <th colspan="6">Weaknesses/Resistances</th>
+                                      <th colspan="6">Weaknesses</th>
                                   </tr>
                                   <tr>
                                       <th>0x</th>
