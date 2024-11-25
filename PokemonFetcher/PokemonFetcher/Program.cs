@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -11,20 +12,13 @@ namespace PokemonFetcher;
 public class Program {
     static void Main(string[] args) {
         if (!ArgsValid(args, out string mainPagePath, out string subPageDirectory, out string stylesheetPath,
-                out string subPageStylesheet)) {
-            Console.Write("Enter path to mainPage (including filename): ");
-            mainPagePath = Console.ReadLine() ?? "index.html";
-            Console.Write("Enter path to subPageDirectory: ");
-            subPageDirectory = Console.ReadLine() ?? "subpages";
-            Console.Write("Enter path to stylesheet: ");
-            stylesheetPath = Console.ReadLine() ?? "style.css";
-            Console.Write("Enter path to subPageStylesheet: ");
-            subPageStylesheet = Console.ReadLine() ?? "substyle.css";
+                out string subPageStylesheet, out string locationMaps)) {
+            return;
         }
-
-
-        // Build main page
-        int numPokemon = 151;
+        
+        Stopwatch timer = Stopwatch.StartNew();
+        
+        int numPokemon = 1;
         var jsonObject = FetchPokemon(0, numPokemon);
         var pokemonArray = jsonObject["results"].AsArray();
         var htmlGenerator = new HtmlBuilder();
@@ -33,8 +27,8 @@ public class Program {
         htmlGenerator.OpenTag("table");
         for (int i = 0; i < pokemonArray.Count;) {
             JsonNode? pokemon = pokemonArray[(Index)i];
-            BuildSinglePokemon(ref htmlGenerator, mainPagePath, subPageDirectory, subPageStylesheet, pokemon);
-            Console.WriteLine($"{++i}/{numPokemon}");
+            BuildSinglePokemon(ref htmlGenerator, mainPagePath, subPageDirectory, subPageStylesheet, locationMaps, pokemon);
+            Console.WriteLine($"{++i}/{numPokemon} (after {timer.Elapsed:mm\\:ss\\.fff}, total of {ApiRequestCount} API requests)");
         }
 
         htmlGenerator.CloseTag();
@@ -42,15 +36,18 @@ public class Program {
 
         File.WriteAllText(mainPagePath, htmlGenerator.ToString());
         
-        Console.WriteLine("Generation complete.");
+        timer.Stop();
+        
+        Console.WriteLine(
+            $"Generation complete after {timer.Elapsed:g}min with {ApiRequestCount} API requests.");
     }
 
-    private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath, string subPageDirectory, string stylesheet, JsonNode pokemon) {
+    private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath, string subPageDirectory, string stylesheet, string location, JsonNode pokemon) {
         #region Get Data
 
         string index = pokemon["url"].ToString().Split("/")[6];
 
-        pokemon = FetchJson(pokemon["url"].ToString());
+        pokemon = GetOrFetchJson(pokemon["url"].ToString());
 
         string pokedexNumber = $"#{index.PadLeft(3, '0')}";
         string name = pokemon["name"].ToString();
@@ -78,14 +75,17 @@ public class Program {
         string specialDefense = stats[4]["base_stat"].ToString();
         string speed = stats[5]["base_stat"].ToString();
 
-        var locations = JsonObject.Parse(Fetch(pokemon["location_area_encounters"].ToString())).AsArray()
-            .Select(location => location["location_area"]["name"].ToString());
-        string locationString = locations.Any() ? string.Join("", locations.Select(l => $"<li>{l}</li>")) : "None";
-
         var types = pokemon["types"].AsArray().Select(type => type["type"]["name"].ToString());
         var effectiveness = CalculateTypeEffectiveness(types);
         var weaknessResistanceTable = BuildWeaknessResistanceTable(effectiveness);
-
+        
+        var locations = 
+            JsonNode.Parse(Fetch(pokemon["location_area_encounters"].ToString()))
+            .AsArray()
+            .Select(location => 
+                GetOrFetchJson(location["location_area"]["url"].ToString()));
+        string locationString = BuildLocationMap(locations, subPageDirectory, location);
+        
         #endregion
 
         #region Build main page content
@@ -101,12 +101,10 @@ public class Program {
         mainPageGenerator.CloseTag();
 
         {
-            string basePath = Path.GetDirectoryName(mainPagePath);
             string targetPath = Path.Combine(subPageDirectory, name + ".html");
-            string relativePath = Path.GetRelativePath(basePath, targetPath);
 
             mainPageGenerator.OpenTag("td");
-            mainPageGenerator.InsertText($"<a href=\"{relativePath.Replace('\\', '/')}\">{name}</a>");
+            mainPageGenerator.InsertText($"<a href=\"{GetRelativePath(mainPagePath, targetPath)}\">{name}</a>");
             mainPageGenerator.CloseTag();
         }
 
@@ -181,9 +179,7 @@ public class Program {
                           </div>
                           <div>
                               <h2>Locations</h2>
-                              <ul class="location-list">
                                   {locationString}
-                              </ul>
                           </div>
                       </body>
                       </html>
@@ -195,33 +191,53 @@ public class Program {
         #endregion
     }
 
+    #region Fetch
+    
+    private static int ApiRequestCount = 0;
     private static string Fetch(string url) {
         using HttpClient client = new();
         var response = client.GetAsync(url).Result;
         response.EnsureSuccessStatusCode();
         var content = response.Content.ReadAsStringAsync().Result;
+        ApiRequestCount++;
         return content;
+    }
+
+    private static Dictionary<string, JsonObject> _jsonCache = new();
+    private static JsonObject GetOrFetchJson(string url)
+    {
+        if (_jsonCache.TryGetValue(url, out var content))
+        {
+            return content;
+        }
+
+        var result = FetchJson(url);
+        _jsonCache.Add(url, result);
+        return result;
     }
 
     private static JsonObject FetchJson(string url) {
         string content = Fetch(url);
-        var jsonObject = JsonNode.Parse(content).AsObject();
+        var jsonObject = JsonObject.Parse(content).AsObject();
         return jsonObject;
     }
 
     private static JsonObject FetchPokemon(int offset, int num) {
-        return FetchJson($"https://pokeapi.co/api/v2/pokemon?offset={offset}&limit={num}");
+        return GetOrFetchJson($"https://pokeapi.co/api/v2/pokemon?offset={offset}&limit={num}");
     }
+    
+    #endregion
 
     private static bool ArgsValid(string[] args, out string mainPagePath, out string subPagePath,
-        out string stylesheetPath, out string subPageStylesheet) {
+        out string stylesheetPath, out string subPageStylesheet, out string locationMaps) {
         mainPagePath = string.Empty;
         subPagePath = string.Empty;
         stylesheetPath = string.Empty;
         subPageStylesheet = string.Empty;
+        locationMaps = string.Empty;
 
         // Expected args: Main page path, Subpage directory path, Stylesheet path, Pokemon count
-        if (args.Length != 4) {
+        if (args.Length != 5) {
             Console.WriteLine("Invalid number of arguments.\nHow to use: dotnet run <mainPagePath> <subPageDirectory> <stylesheetPath> (relative to mainPagePath) <subPageStylesheet> (relative to subPageDirectory)");
             return false;
         }
@@ -230,6 +246,7 @@ public class Program {
         subPagePath = args[1];
         stylesheetPath = args[2];
         subPageStylesheet = args[3];
+        locationMaps = args[4];
         return true;
     }
 
@@ -342,6 +359,74 @@ public class Program {
 
         table.Append("</tr>");
         return table.ToString();
+    }
+
+    #endregion
+
+    #region Maps
+    
+    private static string BuildLocationMap(IEnumerable<JsonObject> locations, string fileDirectory, string drawingPath) {
+    StringBuilder locationString = new();
+
+    // Group by region
+    var groupedLocations = from l in locations
+                           let regionUrl = l["location"]["url"].ToString()
+                           let region = GetOrFetchJson(regionUrl)["region"]["name"].ToString()
+                           group l by region;
+
+    string pathStart = GetRelativePath(fileDirectory, drawingPath);
+
+    List<string> backupLocations = new();
+    foreach (var groupedLocation in groupedLocations) {
+        // Add region name
+        string regionPath = Path.Combine(pathStart, $"Regions/{groupedLocation.Key}.png");
+        locationString.Append($"<div class=\"image-container\"><img src=\"{regionPath}\" alt=\"{groupedLocation.Key}\"/>");
+
+        foreach (var locationArea in groupedLocation) {
+            // Try find area drawing
+            string areaName = locationArea["name"].ToString();
+            bool areaExists = File.Exists(Path.Combine(drawingPath, areaName + ".png"));
+            if (areaExists) {
+                string path = Path.Combine(pathStart, $"Areas/{areaName}.png");
+                locationString.Append($"<img src=\"{path}\" alt=\"{areaName}\"/>");
+                continue;
+            }
+
+            // Fallback: Try find location drawing
+            string locationName = locationArea["location"]["name"].ToString();
+            bool locationExists = File.Exists(Path.Combine(drawingPath, locationName + ".png"));
+            if (locationExists) {
+                string path = Path.Combine(pathStart, $"Locations/{locationName}.png");
+                locationString.Append($"<img src=\"{path}\" alt=\"{locationName}\"/>");
+                continue;
+            }
+
+            // Fallback: Add to list (<ul class="location-list">)
+            backupLocations.Add(locationName);
+        }
+
+        locationString.Append("</div>");
+    }
+
+    locationString.Append("<ul class=\"location-list\">");
+    foreach (var backupLocation in backupLocations) {
+        locationString.Append($"<li>{backupLocation}</li>");
+    }
+    locationString.Append("</ul>");
+
+    return locationString.ToString();
+}
+    #endregion
+
+    #region Paths
+
+    private static string GetRelativePath(string src, string target)
+    {
+        string basePath = Directory.Exists(src)
+            ? src 
+            : Path.GetDirectoryName(src);
+        string relativePath = Path.GetRelativePath(basePath, target);
+        return relativePath.Replace('\\', '/');
     }
 
     #endregion
