@@ -406,13 +406,19 @@ public class Program
     foreach (var groupedLocation in groupedLocations) {
         // Add region name
         string regionPath = Path.Combine(relativePath, $"Regions/{groupedLocation.Key}.png");
-        locationString.Append($"<div class=\"image-container\"><img src=\"{regionPath}\" alt=\"{groupedLocation.Key}\"/>");
+        bool regionExists = File.Exists(Path.Combine(drawingPath, $"Regions/{groupedLocation.Key}.png"));
+        if (regionExists) 
+            locationString.Append($"<div class=\"image-container\"><img src=\"{regionPath}\" alt=\"{groupedLocation.Key}\"/>");
 
         foreach (var locationArea in groupedLocation) {
             // Try find area drawing
             string areaName = locationArea["name"].ToString();
-            bool areaExists = File.Exists(Path.Combine(drawingPath, $"Areas/{areaName}.png"));
-            if (areaExists) {
+            if (!regionExists) goto BackupList;
+            
+            string areaPath = Path.Combine(drawingPath, $"Areas/{areaName}.png");
+            bool areaExists = File.Exists(areaPath);
+            if (areaExists)
+            {
                 string path = Path.Combine(relativePath, $"Areas/{areaName}.png");
                 locationString.Append($"<img src=\"{path}\" alt=\"{areaName}\"/>");
                 continue;
@@ -420,18 +426,21 @@ public class Program
 
             // Fallback: Try find location drawing
             string locationName = locationArea["location"]["name"].ToString();
-            bool locationExists = File.Exists(Path.Combine(drawingPath, $"Locations/{locationName}.png"));
-            if (locationExists) {
+            string locationPath = Path.Combine(drawingPath, $"Locations/{locationName}.png");
+            bool locationExists = File.Exists(locationPath);
+            if (locationExists)
+            {
                 string path = Path.Combine(relativePath, $"Locations/{locationName}.png");
                 locationString.Append($"<img src=\"{path}\" alt=\"{locationName}\"/>");
                 continue;
             }
-
+            
             // Fallback: Add to list (<ul class="location-list">)
+            BackupList:
             backupLocations.Add(areaName);
         }
 
-        locationString.Append("</div>");
+        if (regionExists) locationString.Append("</div>");
     }
 
     locationString.Append("<ul class=\"location-list\">");
