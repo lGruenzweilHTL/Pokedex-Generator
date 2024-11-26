@@ -27,7 +27,7 @@ public class Program
         
         Stopwatch timer = Stopwatch.StartNew();
         
-        int numPokemon = 1;
+        int numPokemon = 10;
         var jsonObject = FetchPokemon(0, numPokemon);
         var pokemonArray = jsonObject["results"].AsArray();
         var htmlGenerator = new HtmlBuilder();
@@ -143,7 +143,7 @@ public class Program
                       <body>
                       <h1>{name}</h1>
                           {floatingImage}
-                          <p>TODO: write text manually</p>
+                          <p class="description">TODO: write description</p>
                           <p class="clearfix">Type: {typesSubpage}</p>
                           <table class="resistance-table clearfix">
                               <thead>
@@ -393,6 +393,8 @@ public class Program
     
     private static string BuildLocationMap(IEnumerable<JsonObject> locations, string fileDirectory, string drawingPath) {
     StringBuilder locationString = new();
+    
+    if (!locations.Any()) return "<p>None</p>";
 
     // Group by region
     var groupedLocations = from l in locations
