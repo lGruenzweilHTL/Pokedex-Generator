@@ -9,12 +9,21 @@ using System.Text.Json.Nodes;
 
 namespace PokemonFetcher;
 
-public class Program {
+public class Program
+{
+    private const string CACHE_PATH = "cache.txt";
     static void Main(string[] args) {
         if (!ArgsValid(args, out string mainPagePath, out string subPageDirectory, out string stylesheetPath,
                 out string subPageStylesheet, out string locationMaps)) {
             return;
         }
+        
+        // Load API cache
+        if (File.Exists(CACHE_PATH))
+        {
+            _apiCache = LoadApiCache(CACHE_PATH);
+        }
+        Console.WriteLine("Cache loaded successfully.");
         
         Stopwatch timer = Stopwatch.StartNew();
         
@@ -38,8 +47,12 @@ public class Program {
         
         timer.Stop();
         
+        // Save API cache
+        SaveApiCache(CACHE_PATH);
+        Console.WriteLine("Cache saved successfully.");
+        
         Console.WriteLine(
-            $"Generation complete after {timer.Elapsed:g}min with {ApiRequestCount} API requests.");
+            $@"Generation complete after {timer.Elapsed:mm\:ss\.fff}min with {ApiRequestCount} API requests.");
     }
 
     private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath, string subPageDirectory, string stylesheet, string location, JsonNode pokemon) {
@@ -47,7 +60,7 @@ public class Program {
 
         string index = pokemon["url"].ToString().Split("/")[6];
 
-        pokemon = GetOrFetchJson(pokemon["url"].ToString());
+        pokemon = FetchJson(pokemon["url"].ToString());
 
         string pokedexNumber = $"#{index.PadLeft(3, '0')}";
         string name = pokemon["name"].ToString();
@@ -80,10 +93,10 @@ public class Program {
         var weaknessResistanceTable = BuildWeaknessResistanceTable(effectiveness);
         
         var locations = 
-            JsonNode.Parse(Fetch(pokemon["location_area_encounters"].ToString()))
+            JsonNode.Parse(GetOrFetchUrl(pokemon["location_area_encounters"].ToString()))
             .AsArray()
             .Select(location => 
-                GetOrFetchJson(location["location_area"]["url"].ToString()));
+                FetchJson(location["location_area"]["url"].ToString()));
         string locationString = BuildLocationMap(locations, subPageDirectory, location);
         
         #endregion
@@ -202,28 +215,41 @@ public class Program {
         ApiRequestCount++;
         return content;
     }
+    
 
-    private static Dictionary<string, JsonObject> _jsonCache = new();
-    private static JsonObject GetOrFetchJson(string url)
+    private static Dictionary<string, string> _apiCache = new();
+    private static string GetOrFetchUrl(string url)
     {
-        if (_jsonCache.TryGetValue(url, out var content))
+        if (_apiCache.TryGetValue(url, out var content))
         {
             return content;
         }
 
-        var result = FetchJson(url);
-        _jsonCache.Add(url, result);
+        var result = Fetch(url);
+        _apiCache.Add(url, result);
         return result;
     }
 
     private static JsonObject FetchJson(string url) {
-        string content = Fetch(url);
+        string content = GetOrFetchUrl(url);
         var jsonObject = JsonObject.Parse(content).AsObject();
         return jsonObject;
     }
 
     private static JsonObject FetchPokemon(int offset, int num) {
-        return GetOrFetchJson($"https://pokeapi.co/api/v2/pokemon?offset={offset}&limit={num}");
+        return FetchJson($"https://pokeapi.co/api/v2/pokemon?offset={offset}&limit={num}");
+    }
+
+    private static Dictionary<string, string> LoadApiCache(string path)
+    {
+        var content = File.ReadAllLines(path);
+        return content.Select(line => line.Split('\t')).ToDictionary(parts => parts[0], parts => parts[1]);
+    }
+
+    private static void SaveApiCache(string path)
+    {
+        var array = _apiCache.Select(pair => $"{pair.Key}\t{pair.Value}");
+        File.WriteAllLines(path, array);
     }
     
     #endregion
@@ -371,38 +397,38 @@ public class Program {
     // Group by region
     var groupedLocations = from l in locations
                            let regionUrl = l["location"]["url"].ToString()
-                           let region = GetOrFetchJson(regionUrl)["region"]["name"].ToString()
+                           let region = FetchJson(regionUrl)["region"]["name"].ToString()
                            group l by region;
 
-    string pathStart = GetRelativePath(fileDirectory, drawingPath);
+    string relativePath = GetRelativePath(fileDirectory, drawingPath);
 
     List<string> backupLocations = new();
     foreach (var groupedLocation in groupedLocations) {
         // Add region name
-        string regionPath = Path.Combine(pathStart, $"Regions/{groupedLocation.Key}.png");
+        string regionPath = Path.Combine(relativePath, $"Regions/{groupedLocation.Key}.png");
         locationString.Append($"<div class=\"image-container\"><img src=\"{regionPath}\" alt=\"{groupedLocation.Key}\"/>");
 
         foreach (var locationArea in groupedLocation) {
             // Try find area drawing
             string areaName = locationArea["name"].ToString();
-            bool areaExists = File.Exists(Path.Combine(drawingPath, areaName + ".png"));
+            bool areaExists = File.Exists(Path.Combine(drawingPath, $"Areas/{areaName}.png"));
             if (areaExists) {
-                string path = Path.Combine(pathStart, $"Areas/{areaName}.png");
+                string path = Path.Combine(relativePath, $"Areas/{areaName}.png");
                 locationString.Append($"<img src=\"{path}\" alt=\"{areaName}\"/>");
                 continue;
             }
 
             // Fallback: Try find location drawing
             string locationName = locationArea["location"]["name"].ToString();
-            bool locationExists = File.Exists(Path.Combine(drawingPath, locationName + ".png"));
+            bool locationExists = File.Exists(Path.Combine(drawingPath, $"Locations/{locationName}.png"));
             if (locationExists) {
-                string path = Path.Combine(pathStart, $"Locations/{locationName}.png");
+                string path = Path.Combine(relativePath, $"Locations/{locationName}.png");
                 locationString.Append($"<img src=\"{path}\" alt=\"{locationName}\"/>");
                 continue;
             }
 
             // Fallback: Add to list (<ul class="location-list">)
-            backupLocations.Add(locationName);
+            backupLocations.Add(areaName);
         }
 
         locationString.Append("</div>");
