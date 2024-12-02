@@ -7,7 +7,7 @@ namespace PokemonFetcher;
 public class Program
 {
     private const string CACHE_PATH = "cache.txt";
-    private const int NUM_POKEMON = 50;
+    private const int NUM_POKEMON = 151;
     private static readonly string[] regionsToFetch = ["kanto"];
     private static Dictionary<string, string[]> locationCache;
 
@@ -37,7 +37,7 @@ public class Program
                     .Select(l => l["name"].ToString())
                     .ToArray());
         
-        Console.WriteLine($@"Finished fetching the region(s) {string.Join(", ", regionsToFetch)} (after {timer.Elapsed:mm\:ss\.fff}, total of {ApiRequestCount} new API requests and {CachedRequestCount} cached ones)");
+        Console.WriteLine($@"Finished fetching the region(s) {string.Join(", ", regionsToFetch)}");
 
         var jsonObject = FetchPokemon(0, NUM_POKEMON);
         var pokemonArray = jsonObject["results"].AsArray();
