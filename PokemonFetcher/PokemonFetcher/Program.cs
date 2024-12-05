@@ -521,8 +521,10 @@ public class Program
             let region =
                 locationCache.FirstOrDefault(r => r.Value.Any(area.Name.StartsWith),
                     new KeyValuePair<string, string[]>(null, null))
-            let location = region.Value?.FirstOrDefault(area.Name.StartsWith)
+            let location = region.Value?.Where(area.Name.StartsWith).MaxBy(a => a.Length)
             group (area.Name, location) by region.Key;
+        
+        if (!groupedLocations.Any()) return "<p>None</p>";
 
         string relativePath = GetRelativePath(fileDirectory, drawingPath);
 
