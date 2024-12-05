@@ -9,6 +9,7 @@ public class Program
     private const string CACHE_PATH = "cache.txt";
     private const int NUM_POKEMON = 151;
     private static readonly string[] regionsToFetch = ["kanto"];
+    private static readonly string[] versionFilter = ["red", "blue", "yellow"];
     private static Dictionary<string, string[]> locationCache;
 
     static void Main(string[] args)
@@ -31,12 +32,12 @@ public class Program
 
         locationCache = regionsToFetch
             .Select(FetchRegion)
-            .ToDictionary(r => r["name"].ToString(), 
+            .ToDictionary(r => r["name"].ToString(),
                 r => r["locations"]
                     .AsArray()
                     .Select(l => l["name"].ToString())
                     .ToArray());
-        
+
         Console.WriteLine($@"Finished fetching the region(s) {string.Join(", ", regionsToFetch)}");
 
         var jsonObject = FetchPokemon(0, NUM_POKEMON);
@@ -111,13 +112,9 @@ public class Program
         var effectiveness = CalculateTypeEffectiveness(types);
         var weaknessResistanceTable = BuildWeaknessResistanceTable(effectiveness);
 
-        // TODO: fix error in reasoning (probably needs one extra request per location)
-        // will probably fetch this when caching in main though
-        var locations =
-            JsonNode.Parse(GetOrFetchUrl(pokemon["location_area_encounters"].ToString()))
-                .AsArray()
-                .Select(area => area["location_area"]["name"].ToString())
-                .ToArray();
+        var locations = JsonNode.Parse(GetOrFetchUrl(pokemon["location_area_encounters"].ToString())).AsArray().Select(
+            area => new PokemonEncounter(area["location_area"]["name"].ToString(),
+                area["version_details"].AsArray().Select(vd => vd["version"]["name"].ToString()).ToArray())).ToArray();
 
         string locationString = BuildLocationMap(locations, subPageDirectory, location, locationCache);
 
@@ -511,19 +508,21 @@ public class Program
 
     #region Maps
 
-    private static string BuildLocationMap(string[] areaNames, string fileDirectory,
+    private static string BuildLocationMap(PokemonEncounter[] encounters, string fileDirectory,
         string drawingPath, Dictionary<string, string[]> locationCache)
     {
         StringBuilder locationString = new();
 
-        if (areaNames.Length == 0 || locationCache.Count == 0) return "<p>None</p>";
+        if (encounters.Length == 0 || locationCache.Count == 0) return "<p>None</p>";
 
         // Group by region
-        var groupedLocations = from area in areaNames
+        var groupedLocations = from area in encounters
+            where area.Versions.Any(versionFilter.Contains)
             let region =
-                locationCache.FirstOrDefault(r => r.Value.Any(area.StartsWith), new KeyValuePair<string, string[]>(null, null))
-                let location = region.Value?.FirstOrDefault(area.StartsWith)
-            group (area, location) by region.Key;
+                locationCache.FirstOrDefault(r => r.Value.Any(area.Name.StartsWith),
+                    new KeyValuePair<string, string[]>(null, null))
+            let location = region.Value?.FirstOrDefault(area.Name.StartsWith)
+            group (area.Name, location) by region.Key;
 
         string relativePath = GetRelativePath(fileDirectory, drawingPath);
 
@@ -542,17 +541,17 @@ public class Program
                         $"<div class=\"image-container\"><img src=\"{regionPath}\" alt=\"{region}\"/>");
             }
 
-            foreach (var (areaName, locationName) in groupedLocation)
+            foreach (var (encounter, locationName) in groupedLocation)
             {
                 // Try to find area drawing
                 if (!regionExists) goto BackupList;
 
-                string areaPath = Path.Combine(drawingPath, $"Areas/{areaName}.png");
+                string areaPath = Path.Combine(drawingPath, $"Areas/{encounter}.png");
                 bool areaExists = File.Exists(areaPath);
                 if (areaExists)
                 {
-                    string path = Path.Combine(relativePath, $"Areas/{areaName}.png");
-                    locationString.Append($"<img src=\"{path}\" alt=\"{areaName}\"/>");
+                    string path = Path.Combine(relativePath, $"Areas/{encounter}.png");
+                    locationString.Append($"<img src=\"{path}\" alt=\"{encounter}\"/>");
                     continue;
                 }
 
@@ -568,7 +567,7 @@ public class Program
 
                 // Fallback: Add to list (<ul class="location-list">)
                 BackupList:
-                backupLocations.Add(areaName);
+                backupLocations.Add(encounter);
             }
 
             if (regionExists) locationString.Append("</div>");
@@ -641,3 +640,5 @@ public class HtmlBuilder
         return _htmlBuilder.ToString();
     }
 }
+
+public record PokemonEncounter(string Name, string[] Versions);
