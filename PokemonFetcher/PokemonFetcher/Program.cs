@@ -80,7 +80,8 @@ public class Program
         pokemon = FetchJson(pokemon["url"].ToString());
 
         string pokedexNumber = $"#{index.PadLeft(3, '0')}";
-        string name = pokemon["name"].ToString();
+        string fileName = pokemon["name"].ToString();
+        string name = FormatPokemonName(fileName);
         string image =
             "<img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/" +
             index + ".png' alt=\"\"/>";
@@ -133,7 +134,7 @@ public class Program
         mainPageGenerator.CloseTag();
 
         {
-            string targetPath = Path.Combine(subPageDirectory, name + ".html");
+            string targetPath = Path.Combine(subPageDirectory, fileName + ".html");
 
             mainPageGenerator.OpenTag("td");
             mainPageGenerator.InsertText($"<a href=\"{GetRelativePath(mainPagePath, targetPath)}\">{name}</a>");
@@ -217,10 +218,16 @@ public class Program
                           </html>
                           """;
 
-        string path = Path.Combine(subPageDirectory, $"{name}.html");
+        string path = Path.Combine(subPageDirectory, $"{fileName}.html");
         File.WriteAllText(path, subpage);
 
         #endregion
+    }
+    
+    private static string FormatPokemonName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return name;
+        return string.Join('-', name.Split('-').Select(part => char.ToUpper(part[0]) + part[1..].ToLower()));
     }
 
     #region Fetch
