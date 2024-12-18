@@ -161,6 +161,14 @@ public class Program
                               <link rel="stylesheet" href="{stylesheet.Replace('\\', '/')}">
                           </head>
                           <body>
+                          <nav class="navigation-bar">
+                              <ul>
+                                  <li><a href="../index.html">Home</a></li>
+                                  <li><a href="../pokedex.html">Pokedex</a></li>
+                                  <li><a href="../types.html">Types</a></li>
+                                  <li><a href="../KindOfPokemons-Subpage/kindOfPokemon.html">Kinds</a></li>
+                              </ul>
+                          </nav>
                           <h1>{name}</h1>
                               {floatingImage}
                               <p class="description">TODO: write description</p>
