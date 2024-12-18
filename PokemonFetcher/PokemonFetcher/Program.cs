@@ -15,7 +15,7 @@ public class Program
     static void Main(string[] args)
     {
         if (!ArgsValid(args, out string mainPagePath, out string subPageDirectory, out string stylesheetPath,
-                out string subPageStylesheet, out string locationMaps))
+                out string subPageStylesheet, out string locationPath))
         {
             return;
         }
@@ -37,6 +37,8 @@ public class Program
                     .AsArray()
                     .Select(l => l["name"].ToString())
                     .ToArray());
+        
+        var descriptions = JsonNode.Parse(File.ReadAllText("descriptions.json"))?.AsArray().Select(d => d.ToString()).ToArray();
 
         Console.WriteLine($@"Finished fetching the region(s) {string.Join(", ", regionsToFetch)}");
 
@@ -50,8 +52,8 @@ public class Program
         for (int i = 0; i < pokemonArray.Count;)
         {
             JsonNode? pokemon = pokemonArray[(Index)i];
-            BuildSinglePokemon(ref htmlGenerator, mainPagePath, subPageDirectory, subPageStylesheet, locationMaps,
-                pokemon);
+            BuildSinglePokemon(ref htmlGenerator, mainPagePath, subPageDirectory, subPageStylesheet, locationPath,
+                pokemon, descriptions[i]);
             Console.WriteLine(
                 $@"{++i}/{NUM_POKEMON} (after {timer.Elapsed:mm\:ss\.fff}, total of {ApiRequestCount} new API requests and {CachedRequestCount} cached ones)");
         }
@@ -71,7 +73,7 @@ public class Program
     }
 
     private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath,
-        string subPageDirectory, string stylesheet, string location, JsonNode pokemon)
+        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description)
     {
         #region Get Data
 
@@ -171,7 +173,7 @@ public class Program
                           </nav>
                           <h1>{name}</h1>
                               {floatingImage}
-                              <p class="description">TODO: write description</p>
+                              <p class="description">{description}</p>
                               <p class="clearfix">Type: {typesSubpage}</p>
                               <table class="resistance-table clearfix">
                                   <thead>
