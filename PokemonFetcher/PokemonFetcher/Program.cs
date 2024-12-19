@@ -66,7 +66,7 @@ public class Program
         var htmlGenerator = new HtmlBuilder();
         htmlGenerator.OpenDocument("Pokedex", stylesheetPath);
         htmlGenerator.InsertText(
-            "<h1 style=\"text-align: center\">Pokedex</h1><p style=\"text-align: center\">(First Generation)</p>");
+            "<nav class=\"navigation-bar\"><ul><li><a href=\"../index.html\">Home</a></li><li><a href=\"pokedex.html\">Pokedex</a></li><li><a href=\"types.html\">Types</a></li><li><a href=\"KindOfPokemons-Subpage/kindOfPokemon.html\">Kinds</a></li></ul></nav><h1 style=\"text-align: center\">Pokedex</h1><p style=\"text-align: center\">(First Generation)</p>");
         htmlGenerator.OpenTag("table");
         for (int i = 0; i < pokemonArray.Count;)
         {
