@@ -11,6 +11,25 @@ public class Program
     private static readonly string[] regionsToFetch = ["kanto"];
     private static readonly string[] versionFilter = ["red", "blue", "yellow"];
     private static Dictionary<string, string[]> locationCache;
+    
+    // Pokemon that don't have the general kind
+    private static readonly Dictionary<int, PokemonKind> PokemonKinds = new()
+    {
+        { 1, PokemonKind.Starter }, { 4, PokemonKind.Starter }, { 7, PokemonKind.Starter },
+        { 144, PokemonKind.Legendary }, { 145, PokemonKind.Legendary }, { 146, PokemonKind.Legendary },
+        { 150, PokemonKind.Legendary }, { 151, PokemonKind.Mythical },
+        { 149, PokemonKind.PseudoLegendary }
+    };
+    
+    private const string PATH_TO_POKEMON_KIND_SUBPAGE = "../KindOfPokemons-Subpage/kindOfPokemon.html";
+    private static readonly Dictionary<PokemonKind, (string name, string link)> KindOfPokemonData = new()
+    {
+        { PokemonKind.General, ("General", PATH_TO_POKEMON_KIND_SUBPAGE + "#general") },
+        { PokemonKind.Starter, ("Starter", PATH_TO_POKEMON_KIND_SUBPAGE + "#starter") },
+        { PokemonKind.Legendary, ("Legendary", PATH_TO_POKEMON_KIND_SUBPAGE + "#legendary") },
+        { PokemonKind.Mythical, ("Mythical", PATH_TO_POKEMON_KIND_SUBPAGE + "#mythical") },
+        { PokemonKind.PseudoLegendary, ("Pseudo-Legendary", PATH_TO_POKEMON_KIND_SUBPAGE + "#pseudo") }
+    };
 
     static void Main(string[] args)
     {
@@ -20,7 +39,7 @@ public class Program
             return;
         }
 
-        Stopwatch timer = Stopwatch.StartNew();
+        var timer = Stopwatch.StartNew();
 
         // Load API cache
         if (File.Exists(CACHE_PATH))
@@ -53,7 +72,7 @@ public class Program
         {
             JsonNode? pokemon = pokemonArray[(Index)i];
             BuildSinglePokemon(ref htmlGenerator, mainPagePath, subPageDirectory, subPageStylesheet, locationPath,
-                pokemon, descriptions[i]);
+                pokemon, descriptions[i], PokemonKinds.GetValueOrDefault(i + 1, PokemonKind.General));
             Console.WriteLine(
                 $@"{++i}/{NUM_POKEMON} (after {timer.Elapsed:mm\:ss\.fff}, total of {ApiRequestCount} new API requests and {CachedRequestCount} cached ones)");
         }
@@ -73,7 +92,7 @@ public class Program
     }
 
     private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath,
-        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description)
+        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description, PokemonKind kind)
     {
         #region Get Data
 
@@ -103,6 +122,7 @@ public class Program
                 var t = type["type"]["name"];
                 return $"<a href=\"../types.html#{t}\">{t}</a>";
             }));
+        string kindOfPokemonLink = $"<a href=\"{KindOfPokemonData[kind].link}\">{KindOfPokemonData[kind].name}</a>";
         var stats = pokemon["stats"];
         string hp = stats[0]["base_stat"].ToString();
         string attack = stats[1]["base_stat"].ToString();
@@ -165,7 +185,7 @@ public class Program
                           <body>
                           <nav class="navigation-bar">
                               <ul>
-                                  <li><a href="../index.html">Home</a></li>
+                                  <li><a href="../../index.html">Home</a></li>
                                   <li><a href="../pokedex.html">Pokedex</a></li>
                                   <li><a href="../types.html">Types</a></li>
                                   <li><a href="../KindOfPokemons-Subpage/kindOfPokemon.html">Kinds</a></li>
@@ -175,6 +195,7 @@ public class Program
                               {floatingImage}
                               <p class="description">{description}</p>
                               <p class="clearfix">Type: {typesSubpage}</p>
+                              <p class="kind clearfix">Kind of Pokémon: {kindOfPokemonLink}</p>
                               <table class="resistance-table clearfix">
                                   <thead>
                                       <tr>
@@ -634,3 +655,12 @@ public class HtmlBuilder
 }
 
 public record PokemonEncounter(string Name, string[] Versions);
+
+public enum PokemonKind
+{
+    General,
+    Starter,
+    Legendary,
+    Mythical,
+    PseudoLegendary
+}
