@@ -8,6 +8,7 @@ public class Program
 {
     private const string CACHE_PATH = "cache.txt";
     private const int NUM_POKEMON = 151;
+    private const bool GENERATE_POKEDEX = false;
     private static readonly string[] regionsToFetch = ["kanto"];
     private static readonly string[] versionFilter = ["red", "blue", "yellow"];
     private static Dictionary<string, string[]> locationCache;
@@ -80,7 +81,8 @@ public class Program
         htmlGenerator.CloseTag();
         htmlGenerator.CloseDocument();
 
-        File.WriteAllText(mainPagePath, htmlGenerator.ToString());
+        if (GENERATE_POKEDEX)
+            File.WriteAllText(mainPagePath, htmlGenerator.ToString());
 
         timer.Stop();
 
@@ -92,7 +94,8 @@ public class Program
     }
 
     private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath,
-        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description, PokemonKind kind)
+        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description, 
+        PokemonKind kind)
     {
         #region Get Data
 
