@@ -12,7 +12,7 @@ public class Program
     private static readonly string[] regionsToFetch = ["kanto"];
     private static readonly string[] versionFilter = ["red", "blue", "yellow"];
     private static Dictionary<string, string[]> locationCache;
-    
+
     // Pokemon that don't have the general kind
     private static readonly Dictionary<int, PokemonKind> PokemonKinds = new()
     {
@@ -21,8 +21,9 @@ public class Program
         { 150, PokemonKind.Legendary }, { 151, PokemonKind.Mythical },
         { 149, PokemonKind.PseudoLegendary }
     };
-    
+
     private const string PATH_TO_POKEMON_KIND_SUBPAGE = "../KindOfPokemons-Subpage/kindOfPokemon.html";
+
     private static readonly Dictionary<PokemonKind, (string name, string link)> KindOfPokemonData = new()
     {
         { PokemonKind.General, ("General", PATH_TO_POKEMON_KIND_SUBPAGE + "#general") },
@@ -57,8 +58,9 @@ public class Program
                     .AsArray()
                     .Select(l => l["name"].ToString())
                     .ToArray());
-        
-        var descriptions = JsonNode.Parse(File.ReadAllText("descriptions.json"))?.AsArray().Select(d => d.ToString()).ToArray();
+
+        var descriptions = JsonNode.Parse(File.ReadAllText("descriptions.json"))?.AsArray().Select(d => d.ToString())
+            .ToArray();
 
         Console.WriteLine($@"Finished fetching the region(s) {string.Join(", ", regionsToFetch)}");
 
@@ -94,7 +96,7 @@ public class Program
     }
 
     private static void BuildSinglePokemon(ref HtmlBuilder mainPageGenerator, string mainPagePath,
-        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description, 
+        string subPageDirectory, string stylesheet, string location, JsonNode pokemon, string description,
         PokemonKind kind)
     {
         #region Get Data
@@ -220,6 +222,8 @@ public class Program
                                   </tbody>
                               </table>
                               <br>
+                              <div class="stats">
+                              <h2>Base Stats</h2>
                               <div class="bar-chart">
                                   <div class="bar-container">
                                       <div class="bar-label">HP</div>
@@ -246,7 +250,8 @@ public class Program
                                       <div class="bar" style="width: {speed}px;">{speed}</div>
                                   </div>
                               </div>
-                              <div>
+                              </div>
+                              <div class="locations">
                                   <h2>Locations</h2>
                                       {locationString}
                               </div>
@@ -259,7 +264,7 @@ public class Program
 
         #endregion
     }
-    
+
     private static string FormatPokemonName(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
