@@ -187,11 +187,13 @@ public class Program
                           </head>
                           <body>
                           <nav class="navigation-bar">
+                              <img src="../Images/pokeball.png" class="navPokeball" alt="Pokéball">
                               <ul>
-                                  <li><a href="../../index.html">Home</a></li>
-                                  <li><a href="../pokedex.html">Pokedex</a></li>
-                                  <li><a href="../types.html">Types</a></li>
-                                  <li><a href="../KindOfPokemons-Subpage/kindOfPokemon.html">Kinds</a></li>
+                                  <li><strong><a href="../../index.html">Home</a></strong></li>
+                                  <li><strong><a href="../pokedex.html">Pokédex</a></strong></li>
+                                  <li><strong><a href="../types.html">Types</a></strong></li>
+                                  <li><strong><a href="../items.html">Items</a></strong></li>
+                                  <li><strong><a href="../KindOfPokemons-Subpage/kindOfPokemon.html">Kinds</a></strong></li>
                               </ul>
                           </nav>
                           <h1>{name}</h1>
