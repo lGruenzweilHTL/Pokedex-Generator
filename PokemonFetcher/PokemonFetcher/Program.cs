@@ -129,12 +129,12 @@ public class Program
             }));
         string kindOfPokemonLink = $"<a href=\"{KindOfPokemonData[kind].link}\">{KindOfPokemonData[kind].name}</a>";
         var stats = pokemon["stats"];
-        string hp = stats[0]["base_stat"].ToString();
-        string attack = stats[1]["base_stat"].ToString();
-        string defense = stats[2]["base_stat"].ToString();
-        string specialAttack = stats[3]["base_stat"].ToString();
-        string specialDefense = stats[4]["base_stat"].ToString();
-        string speed = stats[5]["base_stat"].ToString();
+        int hp = int.Parse(stats[0]["base_stat"].ToString());
+        int attack = int.Parse(stats[1]["base_stat"].ToString());
+        int defense = int.Parse(stats[2]["base_stat"].ToString());
+        int specialAttack = int.Parse(stats[3]["base_stat"].ToString());
+        int specialDefense = int.Parse(stats[4]["base_stat"].ToString());
+        int speed = int.Parse(stats[5]["base_stat"].ToString());
 
         var types = pokemon["types"].AsArray().Select(type => type["type"]["name"].ToString());
         var effectiveness = CalculateTypeEffectiveness(types);
@@ -227,27 +227,27 @@ public class Program
                               <div class="bar-chart">
                                   <div class="bar-container">
                                       <div class="bar-label">HP</div>
-                                      <div class="bar" style="width: {hp}px;">{hp}</div>
+                                      <div class="bar" style="width: {hp*2}px;">{hp}</div>
                                   </div>
                                   <div class="bar-container">
                                       <div class="bar-label">Attack</div>
-                                      <div class="bar" style="width: {attack}px;">{attack}</div>
+                                      <div class="bar" style="width: {attack*2}px;">{attack}</div>
                                   </div>
                                   <div class="bar-container">
                                       <div class="bar-label">Defense</div>
-                                      <div class="bar" style="width: {defense}px;">{defense}</div>
+                                      <div class="bar" style="width: {defense*2}px;">{defense}</div>
                                   </div>
                                   <div class="bar-container">
                                       <div class="bar-label">Special Attack</div>
-                                      <div class="bar" style="width: {specialAttack}px;">{specialAttack}</div>
+                                      <div class="bar" style="width: {specialAttack*2}px;">{specialAttack}</div>
                                   </div>
                                   <div class="bar-container">
                                       <div class="bar-label">Special Defense</div>
-                                      <div class="bar" style="width: {specialDefense}px;">{specialDefense}</div>
+                                      <div class="bar" style="width: {specialDefense*2}px;">{specialDefense}</div>
                                   </div>
                                   <div class="bar-container">
                                       <div class="bar-label">Speed</div>
-                                      <div class="bar" style="width: {speed}px;">{speed}</div>
+                                      <div class="bar" style="width: {speed*2}px;">{speed}</div>
                                   </div>
                               </div>
                               </div>
