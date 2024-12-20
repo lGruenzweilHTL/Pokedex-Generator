@@ -186,6 +186,7 @@ public class Program
                               <meta name="viewport" content="width=device-width, initial-scale=1">
                               <title>{name}</title>
                               <link rel="stylesheet" href="{stylesheet.Replace('\\', '/')}">
+                              <link rel="stylesheet" href="../navbar.css">
                           </head>
                           <body>
                           <nav class="navigation-bar">
